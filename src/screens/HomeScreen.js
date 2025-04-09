@@ -6,10 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, spacing } from '../utils/theme';
+import { colors, spacing, borderRadius } from '../utils/theme';
 import StarryBackground from '../components/StarryBackground';
 import MoodSelector from '../components/MoodSelector';
 import GlowingButton from '../components/GlowingButton';

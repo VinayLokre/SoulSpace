@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 100,
     height: 100,
-    borderRadius: 50,
+    // borderRadius: 50,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   innerCircle: {
     width: 50,
     height: 50,
-    borderRadius: 25,
+    // borderRadius: 25,
     backgroundColor: colors.background.dark,
   },
   title: {

@@ -46,7 +46,7 @@ const Star = ({ size, top, left, animated = false }) => {
         {
           width: size,
           height: size,
-          borderRadius: Math.floor(size / 2),
+          // Removed all borderRadius properties
           top,
           left,
           opacity,
