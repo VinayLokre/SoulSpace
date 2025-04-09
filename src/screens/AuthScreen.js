@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 80,
     height: 80,
-    borderRadius: 40,
+    borderRadius: 8,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   innerCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 8,
     backgroundColor: colors.background.dark,
   },
   title: {
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     backgroundColor: colors.status.error,
-    borderRadius: borderRadius.md,
+    borderRadius: 8,
     padding: spacing.sm,
     marginBottom: spacing.md,
   },
@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   form: {
     width: '100%', // Use full width of container
     backgroundColor: colors.background.medium,
-    borderRadius: borderRadius.lg,
+    borderRadius: 8,
     padding: spacing.lg,
     marginBottom: spacing.lg,
   },
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background.dark,
-    borderRadius: borderRadius.md,
+    borderRadius: 8,
     marginBottom: spacing.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

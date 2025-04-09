@@ -1,30 +1,46 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, Dimensions, Animated, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Animatable from 'react-native-animatable';
 import { colors } from '../utils/theme';
 
 const { width, height } = Dimensions.get('window');
 
 // Star component with random size, position, and opacity
-const Star = ({ size, top, left, animated = false }) => {
+const Star = ({ size, top, left, animated = false, color = '#FFFFFF' }) => {
   const opacity = React.useRef(new Animated.Value(0.1 + Math.random() * 0.9)).current;
+  const scale = React.useRef(new Animated.Value(1)).current;
   const animationRef = React.useRef(null);
 
   useEffect(() => {
     if (animated) {
-      // Create a twinkling effect
+      // Create a twinkling effect with scaling
       animationRef.current = Animated.loop(
         Animated.sequence([
-          Animated.timing(opacity, {
-            toValue: 0.1 + Math.random() * 0.5,
-            duration: 1000 + Math.random() * 3000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(opacity, {
-            toValue: 0.5 + Math.random() * 0.5,
-            duration: 1000 + Math.random() * 3000,
-            useNativeDriver: true,
-          }),
+          Animated.parallel([
+            Animated.timing(opacity, {
+              toValue: 0.1 + Math.random() * 0.5,
+              duration: 1000 + Math.random() * 3000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(scale, {
+              toValue: 0.8,
+              duration: 1000 + Math.random() * 2000,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.parallel([
+            Animated.timing(opacity, {
+              toValue: 0.5 + Math.random() * 0.5,
+              duration: 1000 + Math.random() * 3000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(scale, {
+              toValue: 1.2,
+              duration: 1000 + Math.random() * 2000,
+              useNativeDriver: true,
+            }),
+          ]),
         ])
       );
 
@@ -37,7 +53,10 @@ const Star = ({ size, top, left, animated = false }) => {
         animationRef.current.stop();
       }
     };
-  }, [animated, opacity]);
+  }, [animated, opacity, scale]);
+
+  // Determine if this is a special star (larger with glow)
+  const isSpecialStar = size > 2.5;
 
   return (
     <Animated.View
@@ -46,10 +65,15 @@ const Star = ({ size, top, left, animated = false }) => {
         {
           width: size,
           height: size,
-          // Removed all borderRadius properties
           top,
           left,
           opacity,
+          backgroundColor: color,
+          transform: [{ scale }],
+          shadowColor: color,
+          shadowOpacity: isSpecialStar ? 0.8 : 0,
+          shadowRadius: isSpecialStar ? 5 : 0,
+          elevation: isSpecialStar ? 3 : 0,
         },
       ]}
     />
@@ -61,9 +85,33 @@ const generateStars = (count, animated = false) => {
   // Reduce the number of stars on Android to improve performance
   const adjustedCount = Platform.OS === 'android' ? Math.floor(count * 0.6) : count;
 
+  // Star colors with probability weights
+  const starColors = [
+    { color: '#FFFFFF', weight: 0.7 }, // White (most common)
+    { color: '#FFD700', weight: 0.1 }, // Gold
+    { color: '#00FFFF', weight: 0.1 }, // Cyan
+    { color: '#FF69B4', weight: 0.05 }, // Pink
+    { color: '#9370DB', weight: 0.05 }, // Purple
+  ];
+
+  // Function to select a random color based on weights
+  const getRandomStarColor = () => {
+    const totalWeight = starColors.reduce((sum, { weight }) => sum + weight, 0);
+    let random = Math.random() * totalWeight;
+
+    for (const { color, weight } of starColors) {
+      if (random < weight) return color;
+      random -= weight;
+    }
+
+    return '#FFFFFF'; // Default fallback
+  };
+
   const stars = [];
   for (let i = 0; i < adjustedCount; i++) {
     const size = 1 + Math.random() * 3;
+    const color = getRandomStarColor();
+
     stars.push(
       <Star
         key={i}
@@ -71,6 +119,7 @@ const generateStars = (count, animated = false) => {
         top={Math.random() * height}
         left={Math.random() * width}
         animated={animated}
+        color={color}
       />
     );
   }
@@ -82,8 +131,15 @@ const ShootingStar = ({ delay }) => {
   const translateX = React.useRef(new Animated.Value(-100)).current;
   const translateY = React.useRef(new Animated.Value(-100)).current;
   const opacity = React.useRef(new Animated.Value(0)).current;
+  const [starWidth, setStarWidth] = useState(100);
   const animationRef = React.useRef(null);
   const timeoutRef = React.useRef(null);
+
+  // Random color for the shooting star
+  const [starColor] = useState(() => {
+    const colors = ['#FFFFFF', '#00FFFF', '#FFD700', '#FF69B4'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  });
 
   useEffect(() => {
     // Start the animation after the specified delay
@@ -92,25 +148,37 @@ const ShootingStar = ({ delay }) => {
       const startX = Math.random() * width;
       const startY = Math.random() * (height / 3);
 
+      // Randomize the distance and angle
+      const distance = 300 + Math.random() * 200;
+      const angle = 30 + Math.random() * 30; // Between 30 and 60 degrees
+      const radians = (angle * Math.PI) / 180;
+
+      // Calculate end position based on angle
+      const endX = startX + distance * Math.cos(radians);
+      const endY = startY + distance * Math.sin(radians);
+
       // Set the initial position
       translateX.setValue(startX);
       translateY.setValue(startY);
 
-      // Animate the shooting star
+      // Set the width directly (not animated)
+      setStarWidth(150 + Math.random() * 50);
+
+      // Animate the shooting star position and opacity
       animationRef.current = Animated.parallel([
         Animated.timing(translateX, {
-          toValue: startX + 300,
-          duration: 1000,
+          toValue: endX,
+          duration: 1000 + Math.random() * 500,
           useNativeDriver: true,
         }),
         Animated.timing(translateY, {
-          toValue: startY + 300,
-          duration: 1000,
+          toValue: endY,
+          duration: 1000 + Math.random() * 500,
           useNativeDriver: true,
         }),
         Animated.sequence([
           Animated.timing(opacity, {
-            toValue: 1,
+            toValue: 0.8,
             duration: 200,
             useNativeDriver: true,
           }),
@@ -142,6 +210,12 @@ const ShootingStar = ({ delay }) => {
         styles.shootingStar,
         {
           opacity,
+          width: starWidth,
+          backgroundColor: starColor,
+          shadowColor: starColor,
+          shadowOpacity: 0.8,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: 0 },
           transform: [
             { translateX },
             { translateY },
@@ -167,10 +241,61 @@ const generateShootingStars = (count) => {
   return shootingStars;
 };
 
+// Nebula cloud component for additional space atmosphere
+const NebulaCloud = ({ top, left, size, color, opacity }) => {
+  return (
+    <Animatable.View
+      animation="pulse"
+      iterationCount="infinite"
+      duration={8000 + Math.random() * 4000}
+      style={[
+        styles.nebulaCloud,
+        {
+          top,
+          left,
+          width: size,
+          height: size,
+          backgroundColor: color,
+          opacity,
+          borderRadius: 8,
+        },
+      ]}
+    />
+  );
+};
+
+// Generate nebula clouds
+const generateNebulaClouds = (count) => {
+  // Reduce count on Android for performance
+  const adjustedCount = Platform.OS === 'android' ? Math.min(count, 3) : count;
+
+  const nebulaColors = [
+    colors.neon.purple + '40', // Purple with 25% opacity
+    colors.neon.blue + '30',   // Blue with 19% opacity
+    colors.neon.pink + '25',   // Pink with 15% opacity
+  ];
+
+  const clouds = [];
+  for (let i = 0; i < adjustedCount; i++) {
+    const size = 100 + Math.random() * 200;
+    clouds.push(
+      <NebulaCloud
+        key={i}
+        top={Math.random() * height}
+        left={Math.random() * width}
+        size={size}
+        color={nebulaColors[i % nebulaColors.length]}
+        opacity={0.1 + Math.random() * 0.2}
+      />
+    );
+  }
+  return clouds;
+};
+
 // Main StarryBackground component
 const StarryBackground = ({ children, gradientColors, animated = true }) => {
   // Use provided gradient colors or default to space gradient
-  const bgColors = gradientColors || colors.gradients.space;
+  const bgColors = gradientColors || colors.gradients.cosmos;
 
   return (
     <View style={styles.container}>
@@ -178,6 +303,9 @@ const StarryBackground = ({ children, gradientColors, animated = true }) => {
         colors={bgColors}
         style={styles.gradient}
       >
+        {/* Nebula clouds for depth */}
+        {animated && generateNebulaClouds(5)}
+
         {/* Static stars */}
         {generateStars(100, false)}
 
@@ -214,6 +342,24 @@ const styles = StyleSheet.create({
     width: 100,
     height: 2,
     backgroundColor: '#FFFFFF',
+  },
+  nebulaCloud: {
+    position: 'absolute',
+    backgroundColor: 'rgba(128, 0, 128, 0.1)',
+    borderRadius: 8,
+    zIndex: 0,
+    // Apply blur effect
+    ...Platform.select({
+      ios: {
+        shadowColor: '#FFFFFF',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 1,
+      },
+    }),
   },
   content: {
     flex: 1,

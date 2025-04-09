@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     width: '90%',
     maxHeight: '80%',
     backgroundColor: colors.background.dark,
-    borderRadius: borderRadius.lg,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   modalHeader: {
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   },
   personalityOption: {
     backgroundColor: colors.background.medium,
-    borderRadius: borderRadius.md,
+    borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.md,
     borderWidth: 1,
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: colors.background.medium,
-    borderRadius: borderRadius.md,
+    borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.md,
   },

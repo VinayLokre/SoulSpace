@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing } from '../utils/theme';
+import { colors, spacing, borderRadius } from '../utils/theme';
 import StarryBackground from '../components/StarryBackground';
 import BreathingAnimation from '../components/BreathingAnimation';
 import GlowingButton from '../components/GlowingButton';
@@ -665,14 +665,14 @@ const styles = StyleSheet.create({
   recommendedItem: {
     width: 200,
     backgroundColor: colors.background.medium,
-    // borderRadius: 8, // Using a direct value instead of borderRadius.md
+    borderRadius: 8,
     padding: spacing.md,
     marginRight: spacing.md,
   },
   recommendedIcon: {
     width: 50,
     height: 50,
-    // borderRadius: 25,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
   meditationItem: {
     width: '48%',
     backgroundColor: colors.background.medium,
-    // borderRadius: 8, // Using a direct value instead of borderRadius.md
+    borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.md,
     alignItems: 'center',
@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
   meditationIcon: {
     width: 50,
     height: 50,
-    // borderRadius: 25,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
@@ -750,7 +750,7 @@ const styles = StyleSheet.create({
   },
   instructionContainer: {
     backgroundColor: colors.background.medium,
-    // borderRadius: 8, // Using a direct value instead of borderRadius.md
+    borderRadius: 8,
     padding: spacing.lg,
     marginBottom: spacing.xl,
     width: '100%',
@@ -804,7 +804,7 @@ const styles = StyleSheet.create({
   moodOption: {
     alignItems: 'center',
     padding: spacing.sm,
-    // borderRadius: 8, // Using a direct value instead of borderRadius.md
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'transparent',
     width: 80,
@@ -831,7 +831,7 @@ const styles = StyleSheet.create({
     width: '90%',
     maxHeight: '80%',
     backgroundColor: colors.background.dark,
-    // borderRadius: 16, // Using a direct value instead of borderRadius.lg
+    borderRadius: 8,
     overflow: 'hidden',
   },
   modalHeader: {

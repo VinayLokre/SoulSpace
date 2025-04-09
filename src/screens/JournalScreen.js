@@ -148,7 +148,12 @@ const JournalScreen = () => {
 
   // Get emotion color
   const getEmotionColor = (emotion) => {
-    switch (emotion) {
+    // Check if emotion is valid
+    if (!emotion || typeof emotion !== 'string') {
+      return colors.text.secondary;
+    }
+
+    switch (emotion.toLowerCase()) {
       case 'happy':
         return colors.mood.happy;
       case 'sad':
@@ -185,7 +190,9 @@ const JournalScreen = () => {
           <View style={styles.emotionContainer}>
             <View style={[styles.emotionDot, { backgroundColor: emotionColor }]} />
             <Text style={styles.emotionText}>
-              {emotion.charAt(0).toUpperCase() + emotion.slice(1)}
+              {emotion && typeof emotion === 'string'
+                ? emotion.charAt(0).toUpperCase() + emotion.slice(1)
+                : 'Neutral'}
             </Text>
           </View>
         </View>
@@ -338,8 +345,10 @@ const JournalScreen = () => {
                           ]}
                         />
                         <Text style={styles.emotionText}>
-                          {selectedEntry.emotion.charAt(0).toUpperCase() +
-                            selectedEntry.emotion.slice(1)}
+                          {selectedEntry.emotion && typeof selectedEntry.emotion === 'string'
+                            ? selectedEntry.emotion.charAt(0).toUpperCase() +
+                              selectedEntry.emotion.slice(1)
+                            : 'Neutral'}
                         </Text>
                       </View>
                     )}
@@ -386,7 +395,7 @@ const styles = StyleSheet.create({
   newEntryButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 8,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -396,7 +405,7 @@ const styles = StyleSheet.create({
   },
   entryItem: {
     backgroundColor: colors.background.medium,
-    borderRadius: borderRadius.md,
+    borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.md,
   },
@@ -418,7 +427,7 @@ const styles = StyleSheet.create({
   emotionDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 8,
     marginRight: 4,
   },
   emotionText: {

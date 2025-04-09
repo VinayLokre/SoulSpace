@@ -9,10 +9,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, shadows } from '../utils/theme';
-import { generateAIResponse, speakText, stopSpeaking, detectEmotion } from '../ai/aiManager';
+import { colors, spacing, borderRadius, shadows, typography } from '../utils/theme';
+import { generateAIResponse, speakText, stopSpeaking } from '../ai/aiManager';
+import Voice from '@react-native-voice/voice';
+import VoiceRecordingOverlay from './VoiceRecordingOverlay';
 
 // Message bubble component
 const MessageBubble = ({ message, isUser }) => {
@@ -74,7 +77,9 @@ const MessageBubble = ({ message, isUser }) => {
             ]}
           />
           <Text style={styles.emotionText}>
-            {message.emotion.charAt(0).toUpperCase() + message.emotion.slice(1)}
+            {message.emotion && typeof message.emotion === 'string'
+              ? message.emotion.charAt(0).toUpperCase() + message.emotion.slice(1)
+              : 'Neutral'}
           </Text>
         </View>
       )}
@@ -191,7 +196,89 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [voiceResults, setVoiceResults] = useState([]);
+  const [voiceLevel, setVoiceLevel] = useState(0.3); // Voice level for animation (0-1)
+  const [showOverlay, setShowOverlay] = useState(false); // Control overlay visibility
   const flatListRef = useRef(null);
+  const voiceLevelInterval = useRef(null);
+
+  // Initialize Voice API
+  useEffect(() => {
+    // Set up Voice API event handlers
+    const voiceStart = () => {
+      console.log('Speech recognition started');
+      setIsRecording(true);
+      setShowOverlay(true);
+
+      // Simulate voice level changes for animation
+      voiceLevelInterval.current = setInterval(() => {
+        // Random voice level between 0.3 and 1.0 for animation effect
+        setVoiceLevel(0.3 + Math.random() * 0.7);
+      }, 150);
+
+      // Hide keyboard if it's open
+      Keyboard.dismiss();
+    };
+
+    const voiceEnd = () => {
+      console.log('Speech recognition ended');
+      setIsRecording(false);
+
+      // Clear the voice level interval
+      if (voiceLevelInterval.current) {
+        clearInterval(voiceLevelInterval.current);
+        voiceLevelInterval.current = null;
+      }
+    };
+
+    const voiceResults = (e) => {
+      console.log('Speech recognition results:', e);
+      if (e.value && e.value.length > 0) {
+        const recognizedText = e.value[0];
+        setVoiceResults(e.value);
+        setInputText(recognizedText);
+
+        // Auto-send the message after a short delay
+        setTimeout(() => {
+          if (recognizedText && recognizedText.trim()) {
+            sendMessage(recognizedText);
+          }
+        }, 500);
+      }
+
+      setShowOverlay(false);
+    };
+
+    const voiceError = (e) => {
+      console.error('Speech recognition error:', e);
+      setIsRecording(false);
+      setShowOverlay(false);
+
+      // Clear the voice level interval
+      if (voiceLevelInterval.current) {
+        clearInterval(voiceLevelInterval.current);
+        voiceLevelInterval.current = null;
+      }
+
+      // Don't set default text anymore - just show an error
+      // We'll handle this in the UI with a toast or message
+    };
+
+    // Add event listeners
+    Voice.onSpeechStart = voiceStart;
+    Voice.onSpeechEnd = voiceEnd;
+    Voice.onSpeechResults = voiceResults;
+    Voice.onSpeechError = voiceError;
+
+    // Cleanup function
+    return () => {
+      if (voiceLevelInterval.current) {
+        clearInterval(voiceLevelInterval.current);
+      }
+      Voice.destroy().then(Voice.removeAllListeners);
+    };
+  }, []);
 
   // Format timestamp
   const formatTimestamp = () => {
@@ -200,13 +287,16 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
   };
 
   // Send a message
-  const sendMessage = async () => {
-    if (!inputText.trim()) return;
+  const sendMessage = async (messageText = null) => {
+    // Use provided messageText or inputText from state
+    const textToSend = messageText || inputText;
+
+    if (!textToSend.trim()) return;
 
     // Add user message
     const userMessage = {
       id: Date.now().toString(),
-      text: inputText,
+      text: textToSend,
       isUser: true,
       timestamp: formatTimestamp(),
     };
@@ -221,11 +311,12 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
     }, 100);
 
     try {
-      // Generate AI response
-      const response = await generateAIResponse(inputText, aiPersonality);
-      
-      // Detect emotion in user's message
-      const emotion = detectEmotion(inputText);
+      // Generate AI response - this already includes emotion detection
+      const response = await generateAIResponse(textToSend, aiPersonality);
+
+      // The emotion is now detected inside generateAIResponse
+      // We'll use a default emotion if none is detected
+      const emotion = 'neutral';
 
       // Add AI message
       const aiMessage = {
@@ -240,7 +331,13 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
       setIsTyping(false);
 
       // Speak the AI response
-      speakText(response);
+      setIsSpeaking(true);
+      speakText(response).then(() => {
+        setIsSpeaking(false);
+      }).catch(error => {
+        console.error('Error speaking text:', error);
+        setIsSpeaking(false);
+      });
 
       // Scroll to bottom
       setTimeout(() => {
@@ -253,19 +350,52 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
   };
 
   // Toggle voice recording
-  const toggleRecording = () => {
-    if (isRecording) {
-      // Stop recording and process speech
+  const toggleRecording = async () => {
+    try {
+      if (isRecording) {
+        // Stop recording
+        await Voice.stop();
+        setIsRecording(false);
+        setShowOverlay(false);
+
+        // Clear the voice level interval
+        if (voiceLevelInterval.current) {
+          clearInterval(voiceLevelInterval.current);
+          voiceLevelInterval.current = null;
+        }
+      } else {
+        // Start recording
+        setVoiceResults([]);
+        try {
+          // Hide keyboard if it's open
+          Keyboard.dismiss();
+
+          await Voice.start('en-US');
+          setIsRecording(true);
+          setShowOverlay(true);
+
+          // Simulate voice level changes for animation
+          voiceLevelInterval.current = setInterval(() => {
+            // Random voice level between 0.3 and 1.0 for animation effect
+            setVoiceLevel(0.3 + Math.random() * 0.7);
+          }, 150);
+        } catch (voiceError) {
+          console.error('Voice recognition not available:', voiceError);
+          // Don't set default text anymore, just show an error
+          setIsRecording(false);
+          setShowOverlay(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling voice recording:', error);
       setIsRecording(false);
-      // In a real app, this would use the Voice API to convert speech to text
-      // For now, we'll just simulate it
-      setTimeout(() => {
-        setInputText('This is a simulated voice message.');
-      }, 1000);
-    } else {
-      // Start recording
-      setIsRecording(true);
-      // In a real app, this would start the Voice API
+      setShowOverlay(false);
+
+      // Clear the voice level interval
+      if (voiceLevelInterval.current) {
+        clearInterval(voiceLevelInterval.current);
+        voiceLevelInterval.current = null;
+      }
     }
   };
 
@@ -273,6 +403,13 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
   const clearChat = () => {
     setMessages([]);
     stopSpeaking();
+    setIsSpeaking(false);
+  };
+
+  // Stop AI from speaking
+  const handleStopSpeaking = () => {
+    stopSpeaking();
+    setIsSpeaking(false);
   };
 
   return (
@@ -281,6 +418,14 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
+      {/* Voice Recording Overlay */}
+      {showOverlay && (
+        <VoiceRecordingOverlay
+          isRecording={isRecording}
+          onStop={toggleRecording}
+          voiceLevel={voiceLevel}
+        />
+      )}
       {/* Chat header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>AI Companion</Text>
@@ -311,6 +456,19 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
       {/* Typing indicator */}
       {isTyping && <TypingIndicator />}
 
+      {/* Stop speaking button */}
+      {isSpeaking && (
+        <View style={styles.stopSpeakingContainer}>
+          <TouchableOpacity
+            style={styles.stopSpeakingButton}
+            onPress={handleStopSpeaking}
+          >
+            <Ionicons name="stop-circle" size={24} color={colors.status.error} />
+            <Text style={styles.stopSpeakingText}>Stop AI Speaking</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Input area */}
       <View style={styles.inputContainer}>
         <TextInput
@@ -327,8 +485,8 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
             styles.sendButton,
             !inputText.trim() && !isRecording ? styles.disabledButton : null,
           ]}
-          onPress={isRecording ? toggleRecording : sendMessage}
-          disabled={!inputText.trim() && !isRecording}
+          onPress={isRecording ? toggleRecording : inputText.trim() ? sendMessage : toggleRecording}
+          disabled={!inputText.trim() && !isRecording && isSpeaking}
         >
           <Ionicons
             name={isRecording ? 'stop-circle' : inputText.trim() ? 'send' : 'mic'}
@@ -349,6 +507,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.dark,
+  },
+  stopSpeakingContainer: {
+    padding: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.medium,
+  },
+  stopSpeakingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.xs,
+  },
+  stopSpeakingText: {
+    color: colors.status.error,
+    marginLeft: spacing.xs,
+    fontWeight: '600',
   },
   header: {
     flexDirection: 'row',
@@ -383,7 +558,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   messageBubble: {
-    borderRadius: borderRadius.lg,
+    borderRadius: 8,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     ...shadows.sm,
@@ -417,7 +592,7 @@ const styles = StyleSheet.create({
   emotionDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 8,
     marginRight: 4,
   },
   emotionText: {
@@ -432,7 +607,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.background.medium,
-    borderRadius: borderRadius.lg,
+    borderRadius: 8,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     alignSelf: 'flex-start',
@@ -441,7 +616,7 @@ const styles = StyleSheet.create({
   typingDot: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 8,
     backgroundColor: colors.text.secondary,
     marginRight: 4,
   },
@@ -456,7 +631,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     backgroundColor: colors.background.medium,
-    borderRadius: borderRadius.md,
+    borderRadius: 8,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     color: colors.text.primary,
@@ -465,7 +640,7 @@ const styles = StyleSheet.create({
   sendButton: {
     width: 40,
     height: 40,
-    borderRadius: borderRadius.round,
+    borderRadius: 8,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',

@@ -7,13 +7,19 @@ import {
   TouchableOpacity,
   Animated,
   Modal,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { colors, spacing, borderRadius } from '../utils/theme';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Animatable from 'react-native-animatable';
+import { spacing, typography, effects, animation, colors } from '../utils/theme';
 import StarryBackground from '../components/StarryBackground';
-import MoodSelector from '../components/MoodSelector';
-import GlowingButton from '../components/GlowingButton';
+import GlowingMoodSelector from '../components/GlowingMoodSelector';
+import GlowButton from '../components/GlowButton';
+import GlowingActionButton from '../components/GlowingActionButton';
+import GlowingProgressCard from '../components/GlowingProgressCard';
+import GlowCard from '../components/GlowCard';
 import { useAuth } from '../context/AuthContext';
 import { getJournalStats } from '../services/journalService';
 import { getMeditationStats } from '../services/meditationService';
@@ -21,9 +27,11 @@ import { getMeditationStats } from '../services/meditationService';
 const HomeScreen = () => {
   const navigation = useNavigation();
   const { user, logout } = useAuth();
+  // Use static colors
+  const currentMood = null;
 
   // State variables
-  const [selectedMood, setSelectedMood] = useState(null);
+  const [selectedMood, setSelectedMood] = useState(currentMood);
   const [greeting, setGreeting] = useState('');
   const [journalStats, setJournalStats] = useState(null);
   const [meditationStats, setMeditationStats] = useState(null);
@@ -86,6 +94,7 @@ const HomeScreen = () => {
   // Handle mood selection
   const handleMoodSelect = (mood) => {
     setSelectedMood(mood);
+    // We're not changing theme colors anymore
   };
 
   // Navigate to a specific screen
@@ -121,117 +130,161 @@ const HomeScreen = () => {
           </View>
 
           {/* Mood Selector */}
-          <MoodSelector
-            onSelectMood={handleMoodSelect}
-            selectedMood={selectedMood}
+          <GlowingMoodSelector
+            onMoodSelect={handleMoodSelect}
+            initialMood={selectedMood}
             style={styles.moodSelector}
           />
 
           {/* Quick Actions */}
-          <View style={styles.actionsContainer}>
+          <Animatable.View
+            animation="fadeIn"
+            duration={800}
+            delay={300}
+            style={styles.actionsContainer}
+          >
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.actionsGrid}>
-              <TouchableOpacity
-                style={styles.actionItem}
+              <GlowingActionButton
+                title="Talk to AI"
+                icon="chatbubble"
+                glowColor={colors.neon.purple}
                 onPress={() => navigateTo('AI Companion')}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: colors.primary }]}>
-                  <Ionicons name="chatbubble" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.actionText}>Talk to AI</Text>
-              </TouchableOpacity>
+                animation="fadeInUp"
+                delay={400}
+                size="medium"
+              />
 
-              <TouchableOpacity
-                style={styles.actionItem}
+              <GlowingActionButton
+                title="Journal"
+                icon="book"
+                glowColor={colors.neon.blue}
                 onPress={() => navigateTo('Journal')}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: colors.secondary }]}>
-                  <Ionicons name="book" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.actionText}>Journal</Text>
-              </TouchableOpacity>
+                animation="fadeInUp"
+                delay={500}
+                size="medium"
+              />
 
-              <TouchableOpacity
-                style={styles.actionItem}
+              <GlowingActionButton
+                title="Meditate"
+                icon="moon"
+                glowColor={colors.neon.pink}
                 onPress={() => navigateTo('Meditation')}
-              >
-                <View style={[styles.actionIcon, { backgroundColor: colors.accent }]}>
-                  <Ionicons name="moon" size={24} color="#FFFFFF" />
-                </View>
-                <Text style={styles.actionText}>Meditate</Text>
-              </TouchableOpacity>
+                animation="fadeInUp"
+                delay={600}
+                size="medium"
+              />
             </View>
-          </View>
+          </Animatable.View>
 
           {/* Stats Section */}
-          <View style={styles.statsContainer}>
+          <Animatable.View
+            animation="fadeIn"
+            duration={800}
+            delay={500}
+            style={styles.statsContainer}
+          >
             <Text style={styles.sectionTitle}>Your Progress</Text>
             <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <Text style={styles.statTitle}>Journal Entries</Text>
-                <Text style={styles.statValue}>{journalStats?.totalEntries || 0}</Text>
-                {journalStats?.streakDays > 0 && (
-                  <Text style={styles.statSubtext}>
-                    {journalStats.streakDays} day streak
-                  </Text>
-                )}
-              </View>
+              <GlowingProgressCard
+                title="Journal Entries"
+                value={journalStats?.totalEntries || 0}
+                icon="book-outline"
+                unit={journalStats?.streakDays > 0 ? `${journalStats.streakDays} day streak` : ''}
+                glowColor={colors.neon.blue}
+                animation="fadeInUp"
+                delay={600}
+              />
 
-              <View style={styles.statCard}>
-                <Text style={styles.statTitle}>Meditation</Text>
-                <Text style={styles.statValue}>{meditationStats?.totalSessions || 0}</Text>
-                <Text style={styles.statSubtext}>
-                  {meditationStats?.totalMinutes || 0} minutes total
-                </Text>
-              </View>
+              <GlowingProgressCard
+                title="Meditation"
+                value={meditationStats?.totalSessions || 0}
+                icon="moon-outline"
+                unit={`${meditationStats?.totalMinutes || 0} min total`}
+                glowColor={colors.neon.pink}
+                animation="fadeInUp"
+                delay={700}
+              />
             </View>
-          </View>
+          </Animatable.View>
 
           {/* Mood-based Recommendation */}
           {selectedMood && (
-            <View style={styles.recommendationContainer}>
+            <Animatable.View
+              animation="fadeIn"
+              duration={800}
+              delay={800}
+              style={styles.recommendationContainer}
+            >
               <Text style={styles.sectionTitle}>Recommended for You</Text>
-              <View style={styles.recommendationCard}>
-                <Text style={styles.recommendationTitle}>
-                  {selectedMood === 'anxious'
-                    ? 'Calm Your Mind'
-                    : selectedMood === 'sad'
-                    ? 'Uplift Your Mood'
-                    : selectedMood === 'angry'
-                    ? 'Find Your Center'
-                    : selectedMood === 'tired'
-                    ? 'Restore Your Energy'
-                    : 'Enhance Your Wellbeing'}
-                </Text>
-                <Text style={styles.recommendationText}>
-                  {selectedMood === 'anxious'
-                    ? 'Try a breathing exercise to reduce anxiety and find calm.'
-                    : selectedMood === 'sad'
-                    ? 'Journal about three things you appreciate right now.'
-                    : selectedMood === 'angry'
-                    ? 'A short meditation can help release tension and frustration.'
-                    : selectedMood === 'tired'
-                    ? 'A quick energizing breathing practice might help restore your energy.'
-                    : 'Maintain your positive state with a gratitude practice.'}
-                </Text>
-                <GlowingButton
-                  title={
-                    selectedMood === 'anxious' || selectedMood === 'angry' || selectedMood === 'tired'
-                      ? 'Start Meditation'
-                      : 'Open Journal'
-                  }
-                  onPress={() =>
-                    navigateTo(
-                      selectedMood === 'anxious' || selectedMood === 'angry' || selectedMood === 'tired'
-                        ? 'Meditation'
-                        : 'Journal'
-                    )
-                  }
-                  size="small"
-                  style={styles.recommendationButton}
-                />
-              </View>
-            </View>
+              <GlowCard
+                glowColor={colors.mood[selectedMood] || colors.neon.purple}
+                animation="fadeInUp"
+                delay={900}
+                borderWidth={1.5}
+                borderColor={`${colors.mood[selectedMood]}50` || 'rgba(255, 255, 255, 0.2)'}
+                gradientColors={[
+                  'rgba(30, 30, 60, 0.8)',
+                  'rgba(20, 20, 40, 0.9)',
+                ]}
+              >
+                <View style={styles.recommendationContent}>
+                  <Animatable.Text
+                    animation="fadeIn"
+                    delay={1000}
+                    style={[styles.recommendationTitle, { color: colors.mood[selectedMood] || colors.text.primary }]}
+                  >
+                    {selectedMood === 'anxious'
+                      ? 'Calm Your Mind'
+                      : selectedMood === 'sad'
+                      ? 'Uplift Your Mood'
+                      : selectedMood === 'angry'
+                      ? 'Find Your Center'
+                      : selectedMood === 'tired'
+                      ? 'Restore Your Energy'
+                      : 'Enhance Your Wellbeing'}
+                  </Animatable.Text>
+                  <Animatable.Text
+                    animation="fadeIn"
+                    delay={1100}
+                    style={styles.recommendationText}
+                  >
+                    {selectedMood === 'anxious'
+                      ? 'Try a breathing exercise to reduce anxiety and find calm.'
+                      : selectedMood === 'sad'
+                      ? 'Journal about three things you appreciate right now.'
+                      : selectedMood === 'angry'
+                      ? 'A short meditation can help release tension and frustration.'
+                      : selectedMood === 'tired'
+                      ? 'A quick energizing breathing practice might help restore your energy.'
+                      : 'Maintain your positive state with a gratitude practice.'}
+                  </Animatable.Text>
+                  <Animatable.View animation="fadeIn" delay={1200}>
+                    <GlowButton
+                      title={
+                        selectedMood === 'anxious' || selectedMood === 'angry' || selectedMood === 'tired'
+                          ? 'Start Meditation'
+                          : 'Open Journal'
+                      }
+                      onPress={() =>
+                        navigateTo(
+                          selectedMood === 'anxious' || selectedMood === 'angry' || selectedMood === 'tired'
+                            ? 'Meditation'
+                            : 'Journal'
+                        )
+                      }
+                      size="medium"
+                      glowColor={colors.mood[selectedMood] || colors.neon.purple}
+                      gradientColors={[
+                        colors.mood[selectedMood] || colors.primary,
+                        selectedMood ? colors.mood[`${selectedMood}Glow`] || colors.secondary : colors.secondary,
+                      ]}
+                      style={styles.recommendationButton}
+                    />
+                  </Animatable.View>
+                </View>
+              </GlowCard>
+            </Animatable.View>
           )}
         </Animated.View>
       </ScrollView>
@@ -299,33 +352,54 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   greeting: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: typography.fontSizes.xl,
+    fontFamily: typography.fontFamily.heading,
+    fontWeight: typography.fontWeights.bold,
     color: colors.text.primary,
+    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 3,
   },
   welcomeText: {
-    fontSize: 16,
+    fontSize: typography.fontSizes.md,
+    fontFamily: typography.fontFamily.body,
     color: colors.text.secondary,
     marginTop: spacing.xs,
   },
   profileButton: {
     padding: spacing.xs,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.neon.purple,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
   moodSelector: {
     marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: typography.fontSizes.lg,
+    fontFamily: typography.fontFamily.heading,
+    fontWeight: typography.fontWeights.semibold,
     color: colors.text.primary,
     marginBottom: spacing.md,
+    textShadowColor: 'rgba(255, 255, 255, 0.3)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 2,
   },
   actionsContainer: {
     marginBottom: spacing.xl,
   },
   actionsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
   },
   actionItem: {
     alignItems: 'center',
@@ -334,7 +408,7 @@ const styles = StyleSheet.create({
   actionIcon: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
@@ -355,10 +429,11 @@ const styles = StyleSheet.create({
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
   },
   statCard: {
     backgroundColor: colors.background.medium,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: spacing.md,
     width: '48%',
     alignItems: 'center',
@@ -381,22 +456,29 @@ const styles = StyleSheet.create({
   recommendationContainer: {
     marginBottom: spacing.lg,
   },
+  recommendationContent: {
+    padding: spacing.sm,
+  },
   recommendationCard: {
     backgroundColor: colors.background.medium,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: spacing.lg,
   },
   recommendationTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text.primary,
+    fontSize: typography.fontSizes.lg,
+    fontFamily: typography.fontFamily.heading,
+    fontWeight: typography.fontWeights.bold,
     marginBottom: spacing.sm,
+    textShadowColor: 'rgba(255, 255, 255, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 3,
   },
   recommendationText: {
-    fontSize: 14,
+    fontSize: typography.fontSizes.md,
+    fontFamily: typography.fontFamily.body,
     color: colors.text.secondary,
-    marginBottom: spacing.md,
-    lineHeight: 20,
+    marginBottom: spacing.lg,
+    lineHeight: typography.lineHeights.relaxed,
   },
   recommendationButton: {
     alignSelf: 'flex-start',
@@ -410,7 +492,7 @@ const styles = StyleSheet.create({
   profileModal: {
     width: '80%',
     backgroundColor: colors.background.dark,
-    borderRadius: borderRadius.lg,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   modalHeader: {

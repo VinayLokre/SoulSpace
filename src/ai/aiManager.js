@@ -3,6 +3,43 @@
 
 import * as Speech from 'expo-speech';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  initModels,
+  detectEmotionWithModel,
+  generateResponseWithLLM,
+  areModelsLoaded
+} from './modelManager';
+
+// Initialize AI models
+export const initializeAI = async () => {
+  try {
+    console.log('Initializing AI models...');
+    const result = await initModels();
+    console.log('AI models initialization result:', result);
+    return result;
+  } catch (error) {
+    console.error('Error initializing AI models:', error);
+    return {
+      emotionModelLoaded: false,
+      llmModelLoaded: false
+    };
+  }
+};
+
+// Check if AI models are loaded
+export const checkAIModelsLoaded = async () => {
+  try {
+    const result = await areModelsLoaded();
+    console.log('AI models loaded status:', result);
+    return result;
+  } catch (error) {
+    console.error('Error checking AI models status:', error);
+    return {
+      emotionModelLoaded: false,
+      llmModelLoaded: false
+    };
+  }
+};
 
 // AI Personality modes
 export const AI_PERSONALITIES = {
@@ -22,25 +59,43 @@ const EMOTION_KEYWORDS = {
   calm: ['calm', 'peaceful', 'relaxed', 'serene', 'tranquil', 'content'],
 };
 
-// Simple emotion detection based on keywords
-// This would be replaced with a proper ML model in a production app
-export const detectEmotion = (text) => {
+// Emotion detection using ML model with fallback to keyword-based detection
+export const detectEmotion = async (text) => {
   if (!text) return null;
 
-  const lowercaseText = text.toLowerCase();
-  let detectedEmotion = null;
-  let highestCount = 0;
+  try {
+    // First try to use the ML model for emotion detection
+    const modelEmotion = await detectEmotionWithModel(text);
 
-  Object.entries(EMOTION_KEYWORDS).forEach(([emotion, keywords]) => {
-    const count = keywords.filter(keyword => lowercaseText.includes(keyword)).length;
-    if (count > highestCount) {
-      highestCount = count;
-      detectedEmotion = emotion;
+    // If model detection was successful, return the result
+    if (modelEmotion) {
+      console.log('Using ML model for emotion detection');
+      return modelEmotion;
     }
-  });
 
-  return highestCount > 0 ? detectedEmotion : 'neutral';
+    // Fall back to keyword-based detection if model fails
+    console.log('Falling back to keyword-based emotion detection');
+    const lowercaseText = text.toLowerCase();
+    let detectedEmotion = null;
+    let highestCount = 0;
+
+    Object.entries(EMOTION_KEYWORDS).forEach(([emotion, keywords]) => {
+      const count = keywords.filter(keyword => lowercaseText.includes(keyword)).length;
+      if (count > highestCount) {
+        highestCount = count;
+        detectedEmotion = emotion;
+      }
+    });
+
+    return highestCount > 0 ? detectedEmotion : 'neutral';
+  } catch (error) {
+    console.error('Error in emotion detection:', error);
+    return 'neutral'; // Default to neutral on error
+  }
 };
+
+// Track conversation history for context
+let conversationHistory = [];
 
 // AI response generator based on user input and selected personality
 export const generateAIResponse = async (userInput, personality = AI_PERSONALITIES.LISTENER) => {
@@ -48,18 +103,48 @@ export const generateAIResponse = async (userInput, personality = AI_PERSONALITI
     // Check if we're in offline mode
     const isOffline = await AsyncStorage.getItem('offlineMode') === 'true';
 
+    // Detect emotion in user's message
+    const emotion = await detectEmotion(userInput);
+    console.log(`Detected emotion: ${emotion}`);
+
+    let response;
+
     if (isOffline) {
-      // Use simple rule-based responses when offline
-      return generateOfflineResponse(userInput, personality);
+      // Try to use the LLM model first
+      response = await generateResponseWithLLM(userInput, personality, emotion, conversationHistory);
+
+      // Fall back to rule-based responses if LLM fails
+      if (!response) {
+        console.log('Falling back to rule-based response generation');
+        response = generateOfflineResponse(userInput, personality, emotion);
+      } else {
+        console.log('Using LLM for response generation');
+      }
     } else {
-      // In a real app, this would call an API
-      // For now, we'll simulate a network request
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          resolve(generateOfflineResponse(userInput, personality));
-        }, 1000);
-      });
+      // In a real app, this might call a cloud API
+      // For now, we'll try the local LLM first, then fall back to rule-based
+      response = await generateResponseWithLLM(userInput, personality, emotion, conversationHistory);
+
+      if (!response) {
+        // Simulate network delay for rule-based fallback
+        response = await new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(generateOfflineResponse(userInput, personality, emotion));
+          }, 1000);
+        });
+      }
     }
+
+    // Update conversation history
+    conversationHistory.push({ text: userInput, isUser: true });
+    conversationHistory.push({ text: response, isUser: false });
+
+    // Keep conversation history limited to last 10 messages
+    if (conversationHistory.length > 10) {
+      conversationHistory = conversationHistory.slice(-10);
+    }
+
+    return response;
   } catch (error) {
     console.error('Error generating AI response:', error);
     return "I'm having trouble processing that right now. Can we try again?";
@@ -67,8 +152,24 @@ export const generateAIResponse = async (userInput, personality = AI_PERSONALITI
 };
 
 // Simple rule-based response generator for offline mode
-const generateOfflineResponse = (userInput, personality) => {
-  const emotion = detectEmotion(userInput);
+const generateOfflineResponse = (userInput, personality, emotion) => {
+  // If emotion is not provided, use the synchronous version of detectEmotion
+  if (!emotion) {
+    // This is a simplified synchronous version for backward compatibility
+    const lowercaseText = userInput.toLowerCase();
+    let detectedEmotion = null;
+    let highestCount = 0;
+
+    Object.entries(EMOTION_KEYWORDS).forEach(([em, keywords]) => {
+      const count = keywords.filter(keyword => lowercaseText.includes(keyword)).length;
+      if (count > highestCount) {
+        highestCount = count;
+        detectedEmotion = em;
+      }
+    });
+
+    emotion = highestCount > 0 ? detectedEmotion : 'neutral';
+  }
   const lowercaseInput = userInput.toLowerCase();
 
   // Add more variety to responses
@@ -115,46 +216,46 @@ const generateListenerResponse = (emotion, userInput) => {
   // Create arrays of responses for each emotion
   const responses = {
     happy: [
-      "I'm glad to hear you're feeling positive! What's bringing you joy right now?",
-      "That's wonderful! What specifically is making you feel happy today?",
-      "It's great that you're in good spirits. What's contributing to your happiness?",
-      "I'm happy to hear that! Would you like to share what's going well for you?"
+      "I'm genuinely happy to hear you're feeling good! What specific moments or achievements are bringing you joy today?",
+      "Your positive energy is wonderful to hear. Could you share what's been the highlight of your day so far?",
+      "It's great that you're feeling happy! In what ways has this positive mood influenced your thoughts or actions today?",
+      "I'm so glad you're in good spirits. What practices or habits have been helping you maintain this positive outlook?"
     ],
     sad: [
-      "I'm sorry you're feeling down. Would you like to talk more about what's troubling you?",
-      "It sounds like you're going through a difficult time. I'm here to listen if you want to share more.",
-      "I understand feeling sad can be hard. What's on your mind right now?",
-      "I'm here for you during this tough time. Would it help to talk about what's making you feel sad?"
+      "I notice you're feeling down, and that's completely valid. Would you like to talk about what specifically triggered these feelings?",
+      "I'm here with you in this difficult moment. Sometimes putting words to our sadness can help - what's weighing on your heart right now?",
+      "When we're sad, it can feel isolating. I want you to know I'm here to listen without judgment. What's troubling you most at this moment?",
+      "I'm sorry you're experiencing sadness. Would it help to explore what might bring you even a small moment of comfort right now?"
     ],
     anxious: [
-      "It sounds like you're feeling anxious. Remember to take deep breaths. Would you like to try a breathing exercise together?",
-      "Anxiety can be challenging. What's causing you to feel this way right now?",
-      "I notice you're feeling anxious. Let's take a moment to ground ourselves. What are five things you can see around you?",
-      "When anxiety rises, it can help to focus on the present moment. Would you like to try a quick mindfulness exercise?"
+      "Anxiety can feel overwhelming. Let's take a moment together - can you identify what specific worries are at the forefront of your mind?",
+      "I hear that you're feeling anxious. Sometimes naming our fears can reduce their power - what uncertainties are you facing right now?",
+      "When anxiety rises, our breathing often changes. Would you like to try a brief breathing exercise with me to help center yourself?",
+      "Your anxiety is a valid response to what you're experiencing. What has helped you navigate similar feelings in the past?"
     ],
     angry: [
-      "I can sense that you're frustrated. It's okay to feel this way. Would it help to explore what triggered these feelings?",
-      "Anger is a natural emotion. What happened that made you feel this way?",
-      "It sounds like something has upset you. Would talking about it help process these feelings?",
-      "I understand you're feeling angry. Sometimes expressing it in a healthy way can help. What might help you feel better?"
+      "I can sense your frustration, and it's completely understandable. What specific situation has triggered these intense feelings?",
+      "Anger often masks deeper emotions. When you feel ready, would you like to explore what might be beneath this anger?",
+      "Your feelings of anger are valid. Sometimes it helps to express exactly what you wish you could say or do - would that be helpful?",
+      "I'm here to listen without judgment about what's making you angry. What would feel most supportive right now?"
     ],
     tired: [
-      "You seem tired. It's important to rest and recharge. Is there something specific that's draining your energy?",
-      "Feeling exhausted can make everything harder. Have you been able to get enough rest lately?",
-      "I notice you're feeling tired. What would help you recharge right now?",
-      "It sounds like you could use some rest. What's been demanding your energy lately?"
+      "Being exhausted affects us physically and mentally. Beyond sleep, what other factors might be contributing to your fatigue?",
+      "I hear that you're feeling drained. What activities or responsibilities have been taking the most energy from you lately?",
+      "Sometimes tiredness is our body's way of asking for something. What do you think your body or mind might need right now?",
+      "It's important to honor your need for rest. What small adjustment could you make today to give yourself more space to recharge?"
     ],
     calm: [
-      "It's wonderful that you're feeling peaceful. These moments are precious. What's helping you maintain this sense of calm?",
-      "I'm glad you're feeling calm. What practices have been working well for you?",
-      "That sense of peace is valuable. What helped you reach this state of mind?",
-      "It's great that you're feeling centered. What would help you maintain this feeling?"
+      "This sense of calm you're experiencing is valuable. What practices or circumstances have helped you achieve this balanced state?",
+      "I'm glad you're feeling centered. What insights or perspectives become clearer to you when you're in this peaceful state?",
+      "Moments of tranquility can be powerful. How might you extend or revisit this feeling when challenges arise in the future?",
+      "It's wonderful that you're feeling at peace. How does this calmness manifest in your body and thoughts right now?"
     ],
     default: [
-      "I'm here to listen. How can I support you today?",
-      "I'd like to understand more about how you're feeling. Can you tell me more?",
-      "I'm here for you. What's on your mind right now?",
-      "I'm listening. What would you like to talk about today?"
+      "I'm here as a supportive presence. What's on your mind that you'd like to explore together?",
+      "I'm interested in understanding your current experience. What would feel meaningful to discuss right now?",
+      "I'm here to listen with care and without judgment. What thoughts or feelings would you like to share?",
+      "Our conversations can go wherever you need them to. What matters to you in this moment?"
     ]
   };
 
@@ -281,19 +382,26 @@ const generateFunnyResponse = (emotion, userInput) => {
 
 // Text-to-speech function
 export const speakText = async (text) => {
-  try {
-    const isSpeechEnabled = await AsyncStorage.getItem('speechEnabled') !== 'false';
+  return new Promise(async (resolve, reject) => {
+    try {
+      const isSpeechEnabled = await AsyncStorage.getItem('speechEnabled') !== 'false';
 
-    if (isSpeechEnabled) {
-      Speech.speak(text, {
-        language: 'en',
-        pitch: 1.0,
-        rate: 0.9,
-      });
+      if (isSpeechEnabled) {
+        const id = Speech.speak(text, {
+          language: 'en',
+          pitch: 1.0,
+          rate: 0.9,
+          onDone: () => resolve(),
+          onError: (error) => reject(error),
+        });
+      } else {
+        resolve(); // Resolve immediately if speech is disabled
+      }
+    } catch (error) {
+      console.error('Error speaking text:', error);
+      reject(error);
     }
-  } catch (error) {
-    console.error('Error speaking text:', error);
-  }
+  });
 };
 
 // Stop speaking

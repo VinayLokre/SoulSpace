@@ -15,7 +15,7 @@ const BreathingAnimation = ({
   const circleScale = useRef(new Animated.Value(1)).current;
   const opacityValue = useRef(new Animated.Value(0.3)).current;
   const textOpacity = useRef(new Animated.Value(1)).current;
-  
+
   // State for tracking current phase and cycle
   const [phase, setPhase] = useState('inhale');
   const [cycleCount, setCycleCount] = useState(0);
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   breathCircle: {
     width: 150,
     height: 150,
-    borderRadius: 75,
+    borderRadius: 8,
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',

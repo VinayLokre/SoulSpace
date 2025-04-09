@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   moodItem: {
     width: 60,
     height: 60,
-    borderRadius: borderRadius.round,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
