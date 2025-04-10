@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { colors, spacing } from '../utils/theme';
 
@@ -21,12 +21,23 @@ const BreathingAnimation = ({
   const [cycleCount, setCycleCount] = useState(0);
   const [instruction, setInstruction] = useState('Breathe In');
 
-  // Create the breathing animation sequence
-  useEffect(() => {
-    // Only start if we haven't reached the cycle limit
-    if (cycles !== -1 && cycleCount >= cycles) {
-      if (onComplete) onComplete();
+  // Refs to track animation and mounted state
+  const animationRef = useRef(null);
+  const isMountedRef = useRef(true);
+
+  // Function to create and run the animation for the current phase
+  const runPhaseAnimation = useCallback(() => {
+    // Only start if we haven't reached the cycle limit and component is mounted
+    if (!isMountedRef.current || (cycles !== -1 && cycleCount >= cycles)) {
+      if (onComplete && isMountedRef.current) {
+        onComplete();
+      }
       return;
+    }
+
+    // Stop any existing animation
+    if (animationRef.current) {
+      animationRef.current.stop();
     }
 
     let animationSequence;
@@ -90,9 +101,12 @@ const BreathingAnimation = ({
     }
 
     // Start the animation and set up the next phase
-    if (animationSequence) {
+    if (animationSequence && isMountedRef.current) {
+      // Store the animation reference
+      animationRef.current = animationSequence;
+
       animationSequence.start(({ finished }) => {
-        if (finished) {
+        if (finished && isMountedRef.current) {
           // Move to the next phase
           switch (phase) {
             case 'inhale':
@@ -119,13 +133,6 @@ const BreathingAnimation = ({
         }
       });
     }
-
-    // Clean up animation on unmount
-    return () => {
-      if (animationSequence) {
-        animationSequence.stop();
-      }
-    };
   }, [
     phase,
     cycleCount,
@@ -139,6 +146,30 @@ const BreathingAnimation = ({
     textOpacity,
     onComplete,
   ]);
+
+  // Run the animation when phase changes
+  useEffect(() => {
+    runPhaseAnimation();
+  }, [runPhaseAnimation, phase]);
+
+  // Set up and clean up
+  useEffect(() => {
+    // Reset values on mount
+    setPhase('inhale');
+    setCycleCount(0);
+
+    // Mark as mounted
+    isMountedRef.current = true;
+
+    // Clean up on unmount
+    return () => {
+      isMountedRef.current = false;
+      if (animationRef.current) {
+        animationRef.current.stop();
+        animationRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <View style={[styles.container, style]}>

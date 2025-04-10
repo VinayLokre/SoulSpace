@@ -93,6 +93,7 @@ const MeditationScreen = () => {
     // Clear any existing timer
     if (timerInterval) {
       clearInterval(timerInterval);
+      setTimerInterval(null);
     }
 
     // Reset state
@@ -123,6 +124,7 @@ const MeditationScreen = () => {
       });
     }, 1000);
 
+    // Store the interval ID
     setTimerInterval(interval);
 
     // If it's a guided meditation, start the first instruction
@@ -139,10 +141,14 @@ const MeditationScreen = () => {
   const completeMeditation = async () => {
     if (timerInterval) {
       clearInterval(timerInterval);
+      setTimerInterval(null);
     }
 
     // Music removed to improve performance
     // await stopMeditationMusic();
+
+    // Stop any speaking
+    stopSpeaking();
 
     setSessionCompleted(true);
 
@@ -162,10 +168,18 @@ const MeditationScreen = () => {
   const endSession = async () => {
     if (timerInterval) {
       clearInterval(timerInterval);
+      setTimerInterval(null);
     }
 
+    // Stop any speaking
     stopSpeaking();
-    await stopMeditationMusic();
+
+    try {
+      await stopMeditationMusic();
+    } catch (error) {
+      console.error('Error stopping meditation music:', error);
+    }
+
     setActiveSession(null);
     setSessionCompleted(false);
   };
@@ -339,10 +353,10 @@ const MeditationScreen = () => {
           </View>
         )}
 
-        {/* Toggle Session Button */}
+        {/* End Session Button */}
         <GlowingButton
           title="End Session"
-          onPress={() => toggleMeditation()}
+          onPress={endSession}
           variant="primary"
           glowColor={colors.neon.red}
           style={styles.endButton}

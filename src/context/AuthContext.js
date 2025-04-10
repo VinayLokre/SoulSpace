@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { saveUserDataToFile } from '../utils/fileUtils';
+import { resetNavigation } from '../../App';
+import { logError } from '../components/ErrorLogger';
 
 // Create the Auth Context
 const AuthContext = createContext();
@@ -47,12 +49,20 @@ export const AuthProvider = ({ children }) => {
         const userData = { id: '1', email, name: 'Test User' };
         await AsyncStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
+
+        // Reset navigation to main screen after successful login
+        try {
+          resetNavigation({ index: 0, routes: [{ name: 'Main' }] });
+        } catch (navError) {
+          logError(navError, 'Navigation');
+        }
+
         return { success: true };
       } else {
         return { success: false, message: 'Invalid credentials' };
       }
     } catch (error) {
-      console.error('Login error:', error);
+      logError(error, 'Login');
       return { success: false, message: 'An error occurred during login' };
     }
   };
@@ -77,9 +87,16 @@ export const AuthProvider = ({ children }) => {
       // Set the user in state
       setUser(userData);
 
+      // Reset navigation to personality quest after successful registration
+      try {
+        resetNavigation({ index: 0, routes: [{ name: 'PersonalityQuest' }] });
+      } catch (navError) {
+        logError(navError, 'Navigation');
+      }
+
       return { success: true };
     } catch (error) {
-      console.error('Registration error:', error);
+      logError(error, 'Registration');
       return { success: false, message: 'An error occurred during registration' };
     }
   };
@@ -89,8 +106,15 @@ export const AuthProvider = ({ children }) => {
     try {
       await AsyncStorage.removeItem('user');
       setUser(null);
+
+      // Reset navigation to login screen after logout
+      try {
+        resetNavigation({ index: 0, routes: [{ name: 'Login' }] });
+      } catch (navError) {
+        logError(navError, 'Navigation');
+      }
     } catch (error) {
-      console.error('Logout error:', error);
+      logError(error, 'Logout');
     }
   };
 
@@ -100,8 +124,15 @@ export const AuthProvider = ({ children }) => {
       const guestData = { id: 'guest', name: 'Guest', isGuest: true };
       await AsyncStorage.setItem('user', JSON.stringify(guestData));
       setUser(guestData);
+
+      // Reset navigation to main screen after guest login
+      try {
+        resetNavigation({ index: 0, routes: [{ name: 'Main' }] });
+      } catch (navError) {
+        logError(navError, 'Navigation');
+      }
     } catch (error) {
-      console.error('Skip login error:', error);
+      logError(error, 'Skip Login');
     }
   };
 
@@ -110,9 +141,17 @@ export const AuthProvider = ({ children }) => {
     try {
       await AsyncStorage.setItem('personalityQuestCompleted', 'true');
       setHasCompletedQuest(true);
+
+      // Reset navigation to main screen after completing personality quest
+      try {
+        resetNavigation({ index: 0, routes: [{ name: 'Main' }] });
+      } catch (navError) {
+        logError(navError, 'Navigation');
+      }
+
       return true;
     } catch (error) {
-      console.error('Error completing personality quest:', error);
+      logError(error, 'Personality Quest');
       return false;
     }
   };
