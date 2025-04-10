@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveUserDataToFile } from '../utils/fileUtils';
 
 // Create the Auth Context
 const AuthContext = createContext();
@@ -11,14 +12,21 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasCompletedQuest, setHasCompletedQuest] = useState(false);
 
-  // Check if user is already logged in
+  // Check if user is already logged in and if quest is completed
   useEffect(() => {
     const checkUserStatus = async () => {
       try {
         const userData = await AsyncStorage.getItem('user');
         if (userData) {
           setUser(JSON.parse(userData));
+        }
+
+        // Check if personality quest has been completed
+        const questCompleted = await AsyncStorage.getItem('personalityQuestCompleted');
+        if (questCompleted === 'true') {
+          setHasCompletedQuest(true);
         }
       } catch (error) {
         console.error('Error checking user status:', error);
@@ -54,9 +62,21 @@ export const AuthProvider = ({ children }) => {
     try {
       // For now, we'll just simulate a successful registration
       // In a real app, this would be an API call
-      const userData = { id: '1', email, name };
+      const userData = { id: Date.now().toString(), email, name, password };
+
+      // Save user data to AsyncStorage
       await AsyncStorage.setItem('user', JSON.stringify(userData));
+
+      // Save user data to a local file
+      await saveUserDataToFile(userData);
+
+      // Reset quest completion status for new user
+      await AsyncStorage.setItem('personalityQuestCompleted', 'false');
+      setHasCompletedQuest(false);
+
+      // Set the user in state
       setUser(userData);
+
       return { success: true };
     } catch (error) {
       console.error('Registration error:', error);
@@ -85,6 +105,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Mark personality quest as completed
+  const completePersonalityQuest = async () => {
+    try {
+      await AsyncStorage.setItem('personalityQuestCompleted', 'true');
+      setHasCompletedQuest(true);
+      return true;
+    } catch (error) {
+      console.error('Error completing personality quest:', error);
+      return false;
+    }
+  };
+
+  // Check if personality quest is needed
+  const shouldShowPersonalityQuest = () => {
+    return !hasCompletedQuest && user && !user.isGuest;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -96,6 +133,9 @@ export const AuthProvider = ({ children }) => {
         skipLogin,
         isAuthenticated: !!user,
         isGuest: user?.isGuest || false,
+        completePersonalityQuest,
+        shouldShowPersonalityQuest: shouldShowPersonalityQuest(),
+        hasCompletedQuest,
       }}
     >
       {children}

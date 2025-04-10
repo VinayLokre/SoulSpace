@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,8 @@ import AICompanionScreen from '../screens/AICompanionScreen';
 import JournalScreen from '../screens/JournalScreen';
 import MeditationScreen from '../screens/MeditationScreen';
 import LoadingScreen from '../screens/LoadingScreen';
+import SplashScreen from '../screens/SplashScreen';
+import PersonalityQuestScreen from '../screens/PersonalityQuestScreen';
 
 // Create navigators
 const Stack = createNativeStackNavigator();
@@ -41,14 +43,11 @@ const MainTabNavigator = () => {
         tabBarStyle: {
           backgroundColor: '#121212', // Dark background
           borderTopColor: '#333',
+          height: 60, // Increased height for bottom nav bar
+          paddingTop: 5,
+          paddingBottom: 10,
         },
-        headerStyle: {
-          backgroundColor: '#121212',
-        },
-        headerTintColor: '#fff',
-        headerTitleStyle: {
-          fontWeight: 'bold',
-        },
+        headerShown: false, // Hide the header
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
@@ -61,8 +60,27 @@ const MainTabNavigator = () => {
 
 // Main app navigator
 const AppNavigator = () => {
-  const { isLoading, isAuthenticated } = useAuth();
+  const { isLoading, isAuthenticated, shouldShowPersonalityQuest } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
 
+  useEffect(() => {
+    // If we're not loading auth state anymore, we can prepare to hide splash
+    // but still show it for a minimum time for better UX
+    if (!isLoading) {
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+      }, 1000); // Ensure splash shows for at least 1 second after auth loads
+
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
+  // Show splash screen
+  if (showSplash) {
+    return <SplashScreen onFinish={() => setShowSplash(false)} />;
+  }
+
+  // Show loading screen while checking auth
   if (isLoading) {
     return <LoadingScreen />;
   }
@@ -75,6 +93,8 @@ const AppNavigator = () => {
     >
       {!isAuthenticated ? (
         <Stack.Screen name="Auth" component={AuthScreen} />
+      ) : shouldShowPersonalityQuest ? (
+        <Stack.Screen name="PersonalityQuest" component={PersonalityQuestScreen} />
       ) : (
         <Stack.Screen name="Main" component={MainTabNavigator} />
       )}

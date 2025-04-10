@@ -24,11 +24,20 @@ const DEFAULT_SETTINGS = {
 
 // Meditation types
 export const MEDITATION_TYPES = {
-  BREATHING: 'breathing',
-  GUIDED: 'guided',
-  SILENT: 'silent',
-  BODY_SCAN: 'body_scan',
-  LOVING_KINDNESS: 'loving_kindness',
+  BREATHING: 'breathing',       // Focus on breathing patterns
+  GUIDED: 'guided',             // Guided meditation with voice instructions
+  SILENT: 'silent',             // Silent meditation with timer only
+  BODY_SCAN: 'body_scan',       // Progressive body awareness meditation
+  LOVING_KINDNESS: 'loving_kindness', // Compassion and loving-kindness practice
+};
+
+// Meditation type descriptions
+export const MEDITATION_DESCRIPTIONS = {
+  [MEDITATION_TYPES.BREATHING]: 'Focus on your breath with guided breathing patterns to calm your mind and reduce stress.',
+  [MEDITATION_TYPES.GUIDED]: 'Follow along with guided instructions to help focus your mind and achieve deeper relaxation.',
+  [MEDITATION_TYPES.SILENT]: 'Practice in silence with minimal guidance, allowing your mind to settle naturally.',
+  [MEDITATION_TYPES.BODY_SCAN]: 'Progressively focus attention on different parts of your body to release tension and increase awareness.',
+  [MEDITATION_TYPES.LOVING_KINDNESS]: 'Develop feelings of goodwill, kindness and warmth towards others and yourself.',
 };
 
 // Guided meditation scripts
@@ -113,7 +122,7 @@ export const getMeditationHistory = async () => {
 export const saveMeditationSession = async (type, duration, mood) => {
   try {
     const history = await getMeditationHistory();
-    
+
     const newSession = {
       id: Date.now().toString(),
       type,
@@ -121,10 +130,10 @@ export const saveMeditationSession = async (type, duration, mood) => {
       timestamp: new Date().toISOString(),
       mood, // mood after meditation
     };
-    
+
     const updatedHistory = [newSession, ...history];
     await AsyncStorage.setItem(MEDITATION_HISTORY_KEY, JSON.stringify(updatedHistory));
-    
+
     return newSession;
   } catch (error) {
     console.error('Error saving meditation session:', error);
@@ -136,7 +145,7 @@ export const saveMeditationSession = async (type, duration, mood) => {
 export const getMeditationStats = async () => {
   try {
     const history = await getMeditationHistory();
-    
+
     if (history.length === 0) {
       return {
         totalSessions: 0,
@@ -146,39 +155,39 @@ export const getMeditationStats = async () => {
         favoriteType: null,
       };
     }
-    
+
     // Calculate total minutes
     const totalMinutes = history.reduce((sum, session) => sum + session.duration, 0);
-    
+
     // Calculate favorite type
     const typeCounts = history.reduce((acc, session) => {
       acc[session.type] = (acc[session.type] || 0) + 1;
       return acc;
     }, {});
-    
+
     const favoriteType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0][0];
-    
+
     // Calculate streaks
     const dateMap = new Map();
     history.forEach(session => {
       const date = new Date(session.timestamp).toLocaleDateString();
       dateMap.set(date, true);
     });
-    
+
     // Current streak
     let currentStreak = 0;
     const today = new Date();
     let currentDate = new Date(today);
-    
+
     while (dateMap.has(currentDate.toLocaleDateString())) {
       currentStreak++;
       currentDate.setDate(currentDate.getDate() - 1);
     }
-    
+
     // Longest streak (would require more complex calculation in a real app)
     // For simplicity, we'll just use the current streak for now
     const longestStreak = currentStreak;
-    
+
     return {
       totalSessions: history.length,
       totalMinutes,

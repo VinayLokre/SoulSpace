@@ -20,6 +20,7 @@ import GlowButton from '../components/GlowButton';
 import GlowingActionButton from '../components/GlowingActionButton';
 import GlowingProgressCard from '../components/GlowingProgressCard';
 import GlowCard from '../components/GlowCard';
+import BackButton from '../components/BackButton';
 import { useAuth } from '../context/AuthContext';
 import { getJournalStats } from '../services/journalService';
 import { getMeditationStats } from '../services/meditationService';
@@ -120,7 +121,7 @@ const HomeScreen = () => {
         >
           {/* Header */}
           <View style={styles.header}>
-            <View>
+            <View style={styles.headerTextContainer}>
               <Text style={styles.greeting}>{greeting}</Text>
               <Text style={styles.welcomeText}>Welcome to your safe space</Text>
             </View>
@@ -350,6 +351,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.lg,
+  },
+  backButton: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    zIndex: 10,
+  },
+  headerTextContainer: {
+    flex: 1,
+    marginLeft: spacing.xl,
   },
   greeting: {
     fontSize: typography.fontSizes.xl,

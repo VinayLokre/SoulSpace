@@ -9,11 +9,14 @@ import {
   Platform,
   ScrollView,
   Animated,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../utils/theme';
 import StarryBackground from '../components/StarryBackground';
 import GlowingButton from '../components/GlowingButton';
+import BackButton from '../components/BackButton';
 import { useAuth } from '../context/AuthContext';
 
 const AuthScreen = () => {
@@ -30,17 +33,14 @@ const AuthScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Animation values
-  const formPosition = React.useRef(new Animated.Value(0)).current;
+  const formPosition = React.useRef(new Animated.Value(isLogin ? 0 : 1)).current;
   const errorOpacity = React.useRef(new Animated.Value(0)).current;
 
   // Toggle between login and register
   const toggleAuthMode = () => {
     setError('');
-    Animated.timing(formPosition, {
-      toValue: isLogin ? 1 : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
+    // Set the form position immediately to ensure visibility
+    formPosition.setValue(isLogin ? 1 : 0);
     setIsLogin(!isLogin);
   };
 
@@ -122,6 +122,26 @@ const AuthScreen = () => {
     }
   };
 
+  // Handle Google Sign-in
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoading(true);
+      // This is a placeholder for actual Google Sign-in implementation
+      // You would typically use Expo AuthSession or react-native-google-signin
+      showError('Google Sign-in will be implemented soon');
+      // Example of what the actual implementation might look like:
+      // const result = await Google.logInAsync({...});
+      // if (result.type === 'success') {
+      //   // Handle successful login
+      // }
+    } catch (error) {
+      showError('Google Sign-in failed');
+      console.error('Google Sign-in error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <StarryBackground>
       <KeyboardAvoidingView
@@ -171,7 +191,7 @@ const AuthScreen = () => {
                   {
                     translateX: formPosition.interpolate({
                       inputRange: [0, 1],
-                      outputRange: ['0%', '-100%'], // Use percentage instead of fixed pixels
+                      outputRange: [0, -Dimensions.get('window').width], // Use actual width
                     }),
                   },
                 ],
@@ -180,8 +200,6 @@ const AuthScreen = () => {
           >
             {/* Login Form */}
             <View style={styles.form}>
-              <Text style={styles.formTitle}>Welcome Back</Text>
-
               <View style={styles.inputContainer}>
                 <Ionicons name="mail-outline" size={20} color={colors.text.secondary} />
                 <TextInput
@@ -224,6 +242,21 @@ const AuthScreen = () => {
                 fullWidth
               />
 
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.divider} />
+              </View>
+
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={() => handleGoogleSignIn()}
+                disabled={isLoading}
+              >
+                <Ionicons name="logo-google" size={20} color={colors.text.primary} />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity style={styles.switchButton} onPress={toggleAuthMode}>
                 <Text style={styles.switchText}>
                   Don't have an account? <Text style={styles.switchTextHighlight}>Sign Up</Text>
@@ -247,6 +280,16 @@ const AuthScreen = () => {
               </View>
 
               <View style={styles.inputContainer}>
+                <Ionicons name="calendar-outline" size={20} color={colors.text.secondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Age"
+                  placeholderTextColor={colors.text.disabled}
+                  keyboardType="number-pad"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
                 <Ionicons name="mail-outline" size={20} color={colors.text.secondary} />
                 <TextInput
                   style={styles.input}
@@ -256,6 +299,16 @@ const AuthScreen = () => {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="call-outline" size={20} color={colors.text.secondary} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Phone Number (Optional)"
+                  placeholderTextColor={colors.text.disabled}
+                  keyboardType="phone-pad"
                 />
               </View>
 
@@ -288,6 +341,21 @@ const AuthScreen = () => {
                 fullWidth
               />
 
+              <View style={styles.dividerContainer}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.divider} />
+              </View>
+
+              <TouchableOpacity
+                style={styles.googleButton}
+                onPress={() => handleGoogleSignIn()}
+                disabled={isLoading}
+              >
+                <Ionicons name="logo-google" size={20} color={colors.text.primary} />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </TouchableOpacity>
+
               <TouchableOpacity style={styles.switchButton} onPress={toggleAuthMode}>
                 <Text style={styles.switchText}>
                   Already have an account? <Text style={styles.switchTextHighlight}>Login</Text>
@@ -307,13 +375,21 @@ const AuthScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  backButtonContainer: {
+    position: 'absolute',
+    top: spacing.lg,
+    left: spacing.md,
+    zIndex: 10,
+  },
   container: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     padding: spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 50 : StatusBar.currentHeight + 20,
+    paddingBottom: 100, // Add extra padding at the bottom
   },
   logoContainer: {
     alignItems: 'center',
@@ -362,7 +438,12 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '100%', // Use percentage instead of fixed width
     flexDirection: 'row',
-    overflow: 'hidden', // Hide overflow content
+    overflow: 'visible', // Show overflow content
+    alignSelf: 'center',
+    minHeight: 300, // Ensure minimum height for visibility
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Add semi-transparent background
+    borderRadius: 8,
+    marginVertical: spacing.md,
   },
   form: {
     width: '100%', // Use full width of container
@@ -370,6 +451,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: spacing.lg,
     marginBottom: spacing.lg,
+    alignItems: 'center',
+    minHeight: 300, // Ensure minimum height for visibility
+    opacity: 1, // Ensure full opacity
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 5, // For Android
   },
   formTitle: {
     fontSize: 20,
@@ -386,6 +475,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    width: '100%',
   },
   input: {
     flex: 1,
@@ -414,6 +504,37 @@ const styles = StyleSheet.create({
   skipText: {
     color: colors.text.secondary,
     textDecorationLine: 'underline',
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.md,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.text.disabled,
+  },
+  dividerText: {
+    color: colors.text.secondary,
+    paddingHorizontal: spacing.sm,
+    fontSize: 12,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.background.dark,
+    borderRadius: 8,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.text.disabled,
+  },
+  googleButtonText: {
+    color: colors.text.primary,
+    marginLeft: spacing.sm,
+    fontWeight: '500',
   },
 });
 

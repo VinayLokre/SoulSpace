@@ -14,15 +14,23 @@ import { colors, spacing, borderRadius } from '../utils/theme';
 import StarryBackground from '../components/StarryBackground';
 import BreathingAnimation from '../components/BreathingAnimation';
 import GlowingButton from '../components/GlowingButton';
+import BackButton from '../components/BackButton';
 import {
   getMeditationSettings,
   saveMeditationSettings,
   MEDITATION_TYPES,
+  MEDITATION_DESCRIPTIONS,
   getRecommendedMeditation,
   saveMeditationSession,
   speakMeditationInstruction,
   stopSpeaking,
 } from '../services/meditationService';
+import {
+  initAudio,
+  playMeditationMusic,
+  stopMeditationMusic,
+  unloadAudio,
+} from '../utils/audioUtils';
 
 const MeditationScreen = () => {
   // State variables
@@ -47,14 +55,19 @@ const MeditationScreen = () => {
         clearInterval(timerInterval);
       }
       stopSpeaking();
+      stopMeditationMusic();
+      unloadAudio();
     };
   }, []);
 
-  // Load meditation settings
+  // Load meditation settings and initialize audio
   const loadSettings = async () => {
     try {
       const meditationSettings = await getMeditationSettings();
       setSettings(meditationSettings);
+
+      // Initialize audio system
+      await initAudio();
     } catch (error) {
       console.error('Error loading meditation settings:', error);
     }
@@ -74,7 +87,7 @@ const MeditationScreen = () => {
   };
 
   // Start a meditation session
-  const startMeditation = (type, duration, title) => {
+  const startMeditation = async (type, duration, title) => {
     // Clear any existing timer
     if (timerInterval) {
       clearInterval(timerInterval);
@@ -91,6 +104,9 @@ const MeditationScreen = () => {
       title,
       startTime: new Date(),
     });
+
+    // Start playing calm meditation music
+    await playMeditationMusic();
 
     // Start the timer
     const interval = setInterval(() => {
@@ -123,6 +139,9 @@ const MeditationScreen = () => {
       clearInterval(timerInterval);
     }
 
+    // Stop the meditation music
+    await stopMeditationMusic();
+
     setSessionCompleted(true);
 
     // In a real app, we would save the session to history
@@ -138,14 +157,26 @@ const MeditationScreen = () => {
   };
 
   // End the current session
-  const endSession = () => {
+  const endSession = async () => {
     if (timerInterval) {
       clearInterval(timerInterval);
     }
 
     stopSpeaking();
+    await stopMeditationMusic();
     setActiveSession(null);
     setSessionCompleted(false);
+  };
+
+  // Toggle meditation (start or end)
+  const toggleMeditation = async (type, duration, title) => {
+    if (activeSession) {
+      // If a session is active, end it
+      await endSession();
+    } else {
+      // Otherwise start a new session
+      await startMeditation(type, duration, title);
+    }
   };
 
   // Format time for display (MM:SS)
@@ -180,7 +211,7 @@ const MeditationScreen = () => {
             <TouchableOpacity
               key={index}
               style={styles.recommendedItem}
-              onPress={() => startMeditation(meditation.type, meditation.duration, meditation.title)}
+              onPress={() => toggleMeditation(meditation.type, meditation.duration, meditation.title)}
             >
               <View style={[styles.recommendedIcon, { backgroundColor: getTypeColor(meditation.type) }]}>
                 <Ionicons name={getTypeIcon(meditation.type)} size={24} color="#FFFFFF" />
@@ -197,24 +228,26 @@ const MeditationScreen = () => {
         <View style={styles.meditationGrid}>
           <TouchableOpacity
             style={styles.meditationItem}
-            onPress={() => startMeditation(MEDITATION_TYPES.BREATHING, 5, 'Deep Breathing')}
+            onPress={() => toggleMeditation(MEDITATION_TYPES.BREATHING, 5, 'Deep Breathing')}
           >
             <View style={[styles.meditationIcon, { backgroundColor: colors.primary }]}>
               <Ionicons name="pulse" size={24} color="#FFFFFF" />
             </View>
             <Text style={styles.meditationTitle}>Deep Breathing</Text>
             <Text style={styles.meditationDuration}>5 min</Text>
+            <Text style={styles.meditationDescription}>{MEDITATION_DESCRIPTIONS[MEDITATION_TYPES.BREATHING]}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.meditationItem}
-            onPress={() => startMeditation(MEDITATION_TYPES.BREATHING, 10, 'Box Breathing')}
+            onPress={() => toggleMeditation(MEDITATION_TYPES.BREATHING, 10, 'Box Breathing')}
           >
             <View style={[styles.meditationIcon, { backgroundColor: colors.secondary }]}>
               <Ionicons name="square-outline" size={24} color="#FFFFFF" />
             </View>
             <Text style={styles.meditationTitle}>Box Breathing</Text>
             <Text style={styles.meditationDuration}>10 min</Text>
+            <Text style={styles.meditationDescription}>{MEDITATION_DESCRIPTIONS[MEDITATION_TYPES.BREATHING]}</Text>
           </TouchableOpacity>
         </View>
 
@@ -223,24 +256,26 @@ const MeditationScreen = () => {
         <View style={styles.meditationGrid}>
           <TouchableOpacity
             style={styles.meditationItem}
-            onPress={() => startMeditation(MEDITATION_TYPES.BODY_SCAN, 10, 'Body Scan')}
+            onPress={() => toggleMeditation(MEDITATION_TYPES.BODY_SCAN, 10, 'Body Scan')}
           >
             <View style={[styles.meditationIcon, { backgroundColor: colors.accent }]}>
               <Ionicons name="body-outline" size={24} color="#FFFFFF" />
             </View>
             <Text style={styles.meditationTitle}>Body Scan</Text>
             <Text style={styles.meditationDuration}>10 min</Text>
+            <Text style={styles.meditationDescription}>{MEDITATION_DESCRIPTIONS[MEDITATION_TYPES.BODY_SCAN]}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.meditationItem}
-            onPress={() => startMeditation(MEDITATION_TYPES.LOVING_KINDNESS, 15, 'Loving Kindness')}
+            onPress={() => toggleMeditation(MEDITATION_TYPES.LOVING_KINDNESS, 15, 'Loving Kindness')}
           >
             <View style={[styles.meditationIcon, { backgroundColor: colors.mood.happy }]}>
               <Ionicons name="heart-outline" size={24} color="#FFFFFF" />
             </View>
             <Text style={styles.meditationTitle}>Loving Kindness</Text>
             <Text style={styles.meditationDuration}>15 min</Text>
+            <Text style={styles.meditationDescription}>{MEDITATION_DESCRIPTIONS[MEDITATION_TYPES.LOVING_KINDNESS]}</Text>
           </TouchableOpacity>
         </View>
 
@@ -249,24 +284,26 @@ const MeditationScreen = () => {
         <View style={styles.meditationGrid}>
           <TouchableOpacity
             style={styles.meditationItem}
-            onPress={() => startMeditation(MEDITATION_TYPES.SILENT, 5, 'Quick Silent')}
+            onPress={() => toggleMeditation(MEDITATION_TYPES.SILENT, 5, 'Quick Silent')}
           >
             <View style={[styles.meditationIcon, { backgroundColor: colors.mood.calm }]}>
               <Ionicons name="moon-outline" size={24} color="#FFFFFF" />
             </View>
             <Text style={styles.meditationTitle}>Quick Silent</Text>
             <Text style={styles.meditationDuration}>5 min</Text>
+            <Text style={styles.meditationDescription}>{MEDITATION_DESCRIPTIONS[MEDITATION_TYPES.SILENT]}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.meditationItem}
-            onPress={() => startMeditation(MEDITATION_TYPES.SILENT, 20, 'Deep Silent')}
+            onPress={() => toggleMeditation(MEDITATION_TYPES.SILENT, 20, 'Deep Silent')}
           >
             <View style={[styles.meditationIcon, { backgroundColor: colors.mood.calm }]}>
               <Ionicons name="moon" size={24} color="#FFFFFF" />
             </View>
             <Text style={styles.meditationTitle}>Deep Silent</Text>
             <Text style={styles.meditationDuration}>20 min</Text>
+            <Text style={styles.meditationDescription}>{MEDITATION_DESCRIPTIONS[MEDITATION_TYPES.SILENT]}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -300,11 +337,12 @@ const MeditationScreen = () => {
           </View>
         )}
 
-        {/* End Session Button */}
+        {/* Toggle Session Button */}
         <GlowingButton
           title="End Session"
-          onPress={endSession}
-          variant="outline"
+          onPress={() => toggleMeditation()}
+          variant="primary"
+          glowColor={colors.neon.red}
           style={styles.endButton}
         />
       </View>
@@ -604,6 +642,7 @@ const MeditationScreen = () => {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
+          <BackButton style={styles.backButton} />
           <Text style={styles.headerTitle}>Meditation</Text>
           <TouchableOpacity
             style={styles.settingsButton}
@@ -647,6 +686,12 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: spacing.xs,
+  },
+  backButton: {
+    marginRight: spacing.sm,
+    marginLeft: spacing.sm,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
   optionsContainer: {
     flex: 1,
@@ -705,7 +750,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: spacing.md,
     marginBottom: spacing.md,
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    minHeight: 200,
   },
   meditationIcon: {
     width: 50,
@@ -725,6 +771,12 @@ const styles = StyleSheet.create({
   meditationDuration: {
     fontSize: 14,
     color: colors.text.secondary,
+  },
+  meditationDescription: {
+    fontSize: 12,
+    color: colors.text.secondary,
+    marginTop: spacing.xs,
+    textAlign: 'left',
   },
   sessionContainer: {
     flex: 1,
@@ -764,6 +816,9 @@ const styles = StyleSheet.create({
   },
   endButton: {
     marginTop: spacing.xl,
+    backgroundColor: 'rgba(255, 50, 50, 0.1)',
+    borderColor: colors.status.error,
+    borderWidth: 1,
   },
   completedContainer: {
     flex: 1,

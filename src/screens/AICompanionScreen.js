@@ -13,6 +13,7 @@ import { colors, spacing, borderRadius } from '../utils/theme';
 import StarryBackground from '../components/StarryBackground';
 import ChatInterface from '../components/ChatInterface';
 import GlowingButton from '../components/GlowingButton';
+import BackButton from '../components/BackButton';
 import {
   AI_PERSONALITIES,
   getAISettings,
@@ -95,6 +96,7 @@ const AICompanionScreen = () => {
       <View style={styles.container}>
         {/* Header with settings button */}
         <View style={styles.header}>
+          <BackButton style={styles.backButton} />
           <Text style={styles.headerTitle}>
             AI Companion: {getPersonalityDisplayName(personality)}
           </Text>
@@ -229,6 +231,12 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     padding: spacing.xs,
+  },
+  backButton: {
+    marginRight: spacing.sm,
+    marginLeft: spacing.sm,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
   modalOverlay: {
     flex: 1,

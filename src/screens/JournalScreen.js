@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius } from '../utils/theme';
 import StarryBackground from '../components/StarryBackground';
 import GlowingButton from '../components/GlowingButton';
+import BackButton from '../components/BackButton';
 import {
   getJournalEntries,
   saveJournalEntry,
@@ -207,6 +208,7 @@ const JournalScreen = () => {
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
+          <BackButton style={styles.backButton} />
           <Text style={styles.headerTitle}>Journal</Text>
           <TouchableOpacity style={styles.newEntryButton} onPress={startNewEntry}>
             <Ionicons name="add" size={24} color={colors.text.primary} />
@@ -386,6 +388,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.background.medium,
+  },
+  backButton: {
+    position: 'absolute',
+    left: spacing.sm,
+    top: spacing.sm,
+    zIndex: 10,
+    margin: spacing.sm,
   },
   headerTitle: {
     fontSize: 18,
