@@ -16,7 +16,8 @@ const DEFAULT_SETTINGS = {
     exhale: 6,    // seconds
     holdAfterExhale: 0, // seconds
   },
-  backgroundSound: 'nature', // 'nature', 'rain', 'ocean', 'silence'
+  // backgroundSound removed to improve performance
+  // backgroundSound: 'nature', // 'nature', 'rain', 'ocean', 'silence'
   guidedVoice: true,
   vibration: true,
   defaultDuration: 5, // minutes

@@ -12,9 +12,9 @@ import {
   Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, borderRadius, shadows, typography } from '../utils/theme';
+import { colors, spacing, shadows } from '../utils/theme';
 import { generateAIResponse, speakText, stopSpeaking } from '../ai/aiManager';
-import Voice from '@react-native-voice/voice';
+// Removed Voice import as we're using a simulated approach instead
 import VoiceRecordingOverlay from './VoiceRecordingOverlay';
 
 // Message bubble component
@@ -197,86 +197,19 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [voiceResults, setVoiceResults] = useState([]);
   const [voiceLevel, setVoiceLevel] = useState(0.3); // Voice level for animation (0-1)
   const [showOverlay, setShowOverlay] = useState(false); // Control overlay visibility
   const flatListRef = useRef(null);
   const voiceLevelInterval = useRef(null);
 
-  // Initialize Voice API
+  // Simulated voice recognition implementation
   useEffect(() => {
-    // Set up Voice API event handlers
-    const voiceStart = () => {
-      console.log('Speech recognition started');
-      setIsRecording(true);
-      setShowOverlay(true);
-
-      // Simulate voice level changes for animation
-      voiceLevelInterval.current = setInterval(() => {
-        // Random voice level between 0.3 and 1.0 for animation effect
-        setVoiceLevel(0.3 + Math.random() * 0.7);
-      }, 150);
-
-      // Hide keyboard if it's open
-      Keyboard.dismiss();
-    };
-
-    const voiceEnd = () => {
-      console.log('Speech recognition ended');
-      setIsRecording(false);
-
-      // Clear the voice level interval
-      if (voiceLevelInterval.current) {
-        clearInterval(voiceLevelInterval.current);
-        voiceLevelInterval.current = null;
-      }
-    };
-
-    const voiceResults = (e) => {
-      console.log('Speech recognition results:', e);
-      if (e.value && e.value.length > 0) {
-        const recognizedText = e.value[0];
-        setVoiceResults(e.value);
-        setInputText(recognizedText);
-
-        // Auto-send the message after a short delay
-        setTimeout(() => {
-          if (recognizedText && recognizedText.trim()) {
-            sendMessage(recognizedText);
-          }
-        }, 500);
-      }
-
-      setShowOverlay(false);
-    };
-
-    const voiceError = (e) => {
-      console.error('Speech recognition error:', e);
-      setIsRecording(false);
-      setShowOverlay(false);
-
-      // Clear the voice level interval
-      if (voiceLevelInterval.current) {
-        clearInterval(voiceLevelInterval.current);
-        voiceLevelInterval.current = null;
-      }
-
-      // Don't set default text anymore - just show an error
-      // We'll handle this in the UI with a toast or message
-    };
-
-    // Add event listeners
-    Voice.onSpeechStart = voiceStart;
-    Voice.onSpeechEnd = voiceEnd;
-    Voice.onSpeechResults = voiceResults;
-    Voice.onSpeechError = voiceError;
-
-    // Cleanup function
+    // No initialization needed for simulated approach
     return () => {
+      // Clean up any intervals
       if (voiceLevelInterval.current) {
         clearInterval(voiceLevelInterval.current);
       }
-      Voice.destroy().then(Voice.removeAllListeners);
     };
   }, []);
 
@@ -349,45 +282,10 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
     }
   };
 
-  // Toggle voice recording
-  const toggleRecording = async () => {
-    try {
-      if (isRecording) {
-        // Stop recording
-        await Voice.stop();
-        setIsRecording(false);
-        setShowOverlay(false);
-
-        // Clear the voice level interval
-        if (voiceLevelInterval.current) {
-          clearInterval(voiceLevelInterval.current);
-          voiceLevelInterval.current = null;
-        }
-      } else {
-        // Start recording
-        setVoiceResults([]);
-        try {
-          // Hide keyboard if it's open
-          Keyboard.dismiss();
-
-          await Voice.start('en-US');
-          setIsRecording(true);
-          setShowOverlay(true);
-
-          // Simulate voice level changes for animation
-          voiceLevelInterval.current = setInterval(() => {
-            // Random voice level between 0.3 and 1.0 for animation effect
-            setVoiceLevel(0.3 + Math.random() * 0.7);
-          }, 150);
-        } catch (voiceError) {
-          console.error('Voice recognition not available:', voiceError);
-          // Don't set default text anymore, just show an error
-          setIsRecording(false);
-          setShowOverlay(false);
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling voice recording:', error);
+  // Simulated voice recording function
+  const toggleRecording = () => {
+    if (isRecording) {
+      // Stop simulated recording
       setIsRecording(false);
       setShowOverlay(false);
 
@@ -396,6 +294,36 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
         clearInterval(voiceLevelInterval.current);
         voiceLevelInterval.current = null;
       }
+
+      // Simulate receiving voice recognition results
+      const simulatedText = "This is a simulated voice message from the AI companion.";
+      setInputText(simulatedText);
+
+      // Auto-send the message after a short delay
+      setTimeout(() => {
+        sendMessage(simulatedText);
+      }, 500);
+
+    } else {
+      // Start simulated recording
+      // Hide keyboard if it's open
+      Keyboard.dismiss();
+
+      setIsRecording(true);
+      setShowOverlay(true);
+
+      // Simulate voice level changes for animation
+      voiceLevelInterval.current = setInterval(() => {
+        // Random voice level between 0.3 and 1.0 for animation effect
+        setVoiceLevel(0.3 + Math.random() * 0.7);
+      }, 150);
+
+      // Simulate recording for 3 seconds then automatically stop
+      setTimeout(() => {
+        if (isRecording) {
+          toggleRecording();
+        }
+      }, 3000);
     }
   };
 
@@ -471,6 +399,23 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
 
       {/* Input area */}
       <View style={styles.inputContainer}>
+        {/* Mic button on the left */}
+        <TouchableOpacity
+          style={[
+            styles.micButton,
+            isRecording ? styles.activeButton : null
+          ]}
+          onPress={toggleRecording}
+          disabled={isSpeaking}
+        >
+          <Ionicons
+            name={isRecording ? 'stop-circle' : 'mic'}
+            size={24}
+            color={isRecording ? colors.accent.primary : colors.text.secondary}
+          />
+        </TouchableOpacity>
+
+        {/* Text input in the middle */}
         <TextInput
           style={styles.input}
           placeholder="Type a message..."
@@ -480,22 +425,20 @@ const ChatInterface = ({ aiPersonality = 'listener' }) => {
           multiline
           maxLength={500}
         />
+
+        {/* Send button on the right */}
         <TouchableOpacity
           style={[
             styles.sendButton,
-            !inputText.trim() && !isRecording ? styles.disabledButton : null,
+            !inputText.trim() ? styles.disabledButton : null
           ]}
-          onPress={isRecording ? toggleRecording : inputText.trim() ? sendMessage : toggleRecording}
-          disabled={!inputText.trim() && !isRecording && isSpeaking}
+          onPress={() => inputText.trim() && sendMessage()}
+          disabled={!inputText.trim() || isSpeaking}
         >
           <Ionicons
-            name={isRecording ? 'stop-circle' : inputText.trim() ? 'send' : 'mic'}
+            name="send"
             size={24}
-            color={
-              !inputText.trim() && !isRecording
-                ? colors.text.disabled
-                : colors.text.primary
-            }
+            color={inputText.trim() ? colors.accent.primary : colors.text.disabled}
           />
         </TouchableOpacity>
       </View>
@@ -636,6 +579,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     color: colors.text.primary,
     maxHeight: 100,
+    marginHorizontal: spacing.sm,
+  },
+  micButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: colors.background.medium,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sendButton: {
     width: 40,
@@ -644,7 +596,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: spacing.sm,
+  },
+  activeButton: {
+    backgroundColor: colors.accent.secondary,
   },
   disabledButton: {
     backgroundColor: colors.background.medium,

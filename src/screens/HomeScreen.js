@@ -351,6 +351,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.lg,
+    marginTop: spacing.md,
   },
   backButton: {
     position: 'absolute',

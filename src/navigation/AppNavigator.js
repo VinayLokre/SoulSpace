@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
 // Import screens
-import AuthScreen from '../screens/AuthScreen';
+import LoginScreen from '../screens/LoginScreen';
+import SignUpScreen from '../screens/SignUpScreen';
 import HomeScreen from '../screens/HomeScreen';
 import AICompanionScreen from '../screens/AICompanionScreen';
 import JournalScreen from '../screens/JournalScreen';
@@ -92,7 +93,11 @@ const AppNavigator = () => {
       }}
     >
       {!isAuthenticated ? (
-        <Stack.Screen name="Auth" component={AuthScreen} />
+        // Auth Stack Navigator
+        <Stack.Group>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="SignUp" component={SignUpScreen} />
+        </Stack.Group>
       ) : shouldShowPersonalityQuest ? (
         <Stack.Screen name="PersonalityQuest" component={PersonalityQuestScreen} />
       ) : (

@@ -25,12 +25,13 @@ import {
   speakMeditationInstruction,
   stopSpeaking,
 } from '../services/meditationService';
-import {
-  initAudio,
-  playMeditationMusic,
-  stopMeditationMusic,
-  unloadAudio,
-} from '../utils/audioUtils';
+// Audio imports removed to improve performance
+// import {
+//   initAudio,
+//   playMeditationMusic,
+//   stopMeditationMusic,
+//   unloadAudio,
+// } from '../utils/audioUtils';
 
 const MeditationScreen = () => {
   // State variables
@@ -55,8 +56,9 @@ const MeditationScreen = () => {
         clearInterval(timerInterval);
       }
       stopSpeaking();
-      stopMeditationMusic();
-      unloadAudio();
+      // Music removed to improve performance
+      // stopMeditationMusic();
+      // unloadAudio();
     };
   }, []);
 
@@ -66,8 +68,8 @@ const MeditationScreen = () => {
       const meditationSettings = await getMeditationSettings();
       setSettings(meditationSettings);
 
-      // Initialize audio system
-      await initAudio();
+      // Audio initialization removed to improve performance
+      // await initAudio();
     } catch (error) {
       console.error('Error loading meditation settings:', error);
     }
@@ -105,8 +107,8 @@ const MeditationScreen = () => {
       startTime: new Date(),
     });
 
-    // Start playing calm meditation music
-    await playMeditationMusic();
+    // Music removed to improve performance
+    // await playMeditationMusic();
 
     // Start the timer
     const interval = setInterval(() => {
@@ -139,8 +141,8 @@ const MeditationScreen = () => {
       clearInterval(timerInterval);
     }
 
-    // Stop the meditation music
-    await stopMeditationMusic();
+    // Music removed to improve performance
+    // await stopMeditationMusic();
 
     setSessionCompleted(true);
 
@@ -675,7 +677,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.background.medium,
   },

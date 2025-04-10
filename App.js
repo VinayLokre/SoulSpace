@@ -6,6 +6,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initializeAI } from './src/ai/aiManager';
 import FontLoader from './src/components/FontLoader';
+import * as Updates from 'expo-updates';
 
 export default function App() {
   const [aiStatus, setAiStatus] = useState({
@@ -13,6 +14,22 @@ export default function App() {
     llmModelLoaded: false,
     initializing: true
   });
+
+  // Disable update checking
+  useEffect(() => {
+    async function disableUpdates() {
+      try {
+        // Disable automatic updates
+        if (Updates.isAvailable) {
+          await Updates.setUpdatesCheckAutomaticallyAsync(Updates.UpdateCheckFrequency.ON_ERROR_RECOVERY);
+        }
+      } catch (error) {
+        console.error('Error disabling updates:', error);
+      }
+    }
+
+    disableUpdates();
+  }, []);
 
   // Initialize AI models when the app starts
   useEffect(() => {

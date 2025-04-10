@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions, Animated, Platform } from 'react-native';
+import { View, StyleSheet, Dimensions, Animated, Platform, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Animatable from 'react-native-animatable';
 import { colors } from '../utils/theme';
@@ -364,6 +364,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     zIndex: 1,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 24 : 44,
   },
 });
 
